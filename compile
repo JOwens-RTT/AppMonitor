@@ -5,7 +5,7 @@ TARGET="main"
 
 # BUILD ARGS
 GXX_ARGS="-Wall -std=c++17"
-LINK_ARGS=""
+LINK_ARGS="-pthread"
 
 # PROJECT STUCTURE
 DIR_SRC="./src"

@@ -44,6 +44,8 @@ public:
     return val;
   }
 
+  
+
 private:
   std::queue<T> q;
   mutable std::mutex m;
