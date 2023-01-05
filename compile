@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# SELECT TARGET
+TARGET="main"
+
+# BUILD ARGS
+GXX_ARGS="-Wall -std=c++17"
+LINK_ARGS=""
+
+# PROJECT STUCTURE
+DIR_SRC="./src"
+DIR_LIB="./lib"
+DIR_INC="./inc"
+DIR_BUILD="./build"
+
+# EXECUTABLE
+EXE="$DIR_BUILD/$TARGET"
+
+# CREATE PROJECT STRUCTURE IF NEEDED
+if [ ! -d $DIR_SRC ]; then
+    echo "$DIR_SRC missing. Creating..."
+    mkdir $DIR_SRC
+    echo "Done."
+fi
+if [ ! -d $DIR_LIB ]; then
+    echo "$DIR_LIB missing. Creating..."
+    mkdir $DIR_LIB
+    echo "Done."
+fi
+if [ ! -d $DIR_INC ]; then
+    echo "$DIR_INC missing. Creating..."
+    mkdir $DIR_INC
+    echo "Done."
+fi
+if [ ! -d $DIR_BUILD ]; then
+    echo "$DIR_BUILD missing. Creating..."
+    mkdir $DIR_BUILD
+    echo "Done."
+fi
+
+# SCAN FOR LIB DEPENDENCIES
+CWD=$(pwd)
+readarray -d '' LIB_DIRS < <(find $DIR_LIB -type d -print0)
+readarray -d '' LIB_SRCS < <(find $DIR_LIB -type f \( -name '*.c' -or -name '*.cpp' \) -print0)
+
+echo "Libraries found: $LIB_DIRS"
+echo "Library sources: $LIB_SRCS"
+
+# SCAN FOR INC DEPENDENCIES
+readarray -d '' INC_DIRS < <(find $DIR_INC -type d -print0)
+echo "Includes found: $INC_DIRS"
+
+# SCAN FOR SRCS
+readarray -d '' SRC_SRCS < <(find $DIR_SRC -type f \( -name '*.c' -or -name '*.cpp' \) -print0)
+echo "Sources: $SRC_SRCS"
+
+# CONSTRUCT INCLUDES LIST
+INCS_DIRS=()
+BUILD_DIRS=()
+INCS=""
+for i in "${LIB_DIRS[@]}"
+do 
+    INCS_DIRS+=($i)
+    BUILD_DIRS+=("${i/$DIR_LIB/$DIR_BUILD}")
+    INCS="$INCS -I$i"
+done
+for i in "${INC_DIRS[@]}"
+do 
+    INCS_DIRS+=($i)
+    BUILD_DIRS+=("${i/$DIR_INC/$DIR_BUILD}")
+    INCS="$INCS -I$i"
+done 
+echo "Include directories: ${INCS_DIRS[@]}"
+echo "INCS: $INCS"
+echo "Build directories: ${BUILD_DIRS[@]}"
+
+# CONSTRUCT ALL DIRECTORIES NEEDED FOR BUILD
+for dir in "${BUILD_DIRS[@]}"
+do
+    mkdir -p $dir
+done
+
+# COMPILE OBJECTS
+OBJS=""
+for src in "${SRC_SRCS[@]}"
+do
+    echo "Compiling $src..."
+    obj="${src/$DIR_SRC/$DIR_BUILD}.o"
+    echo "Output to $obj"
+    OBJS="$OBJS $obj"
+    g++ -o $obj -c $src $INCS $GXX_ARGS
+    echo "Done."
+done 
+for src in "${LIB_SRCS[@]}"
+do
+    echo "Compiling $src..."
+    obj="${src/$DIR_LIB/$DIR_BUILD}.o"
+    echo "Output to $obj"
+    OBJS="$OBJS $obj"
+    g++ -o $obj -c $src $INCS $GXX_ARGS
+    echo "Done."
+done
+echo "Compiled objects: $OBJS"
+# LINKING
+g++ -o $EXE $OBJS $LINK_ARGS
+echo "Output file: $EXE"
